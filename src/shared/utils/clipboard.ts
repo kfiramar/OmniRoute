@@ -31,16 +31,18 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     const textArea = document.createElement("textarea");
     textArea.value = text;
     textArea.style.cssText = "position:fixed;top:0;left:-9999px;opacity:0;pointer-events:none;";
-    document.body.appendChild(textArea);
+    let appended = false;
 
     try {
+      document.body.appendChild(textArea);
+      appended = true;
       textArea.focus();
       textArea.select();
       return document.execCommand("copy");
     } catch {
       return false;
     } finally {
-      if (document.body.contains(textArea)) {
+      if (appended && document.body.contains(textArea)) {
         document.body.removeChild(textArea);
       }
     }

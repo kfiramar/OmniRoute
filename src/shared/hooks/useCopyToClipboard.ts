@@ -17,21 +17,19 @@ export function useCopyToClipboard(resetDelay = 2000) {
     async (text: string, id = "default"): Promise<boolean> => {
       const success = await copyToClipboard(text);
 
-      if (!success) {
-        return false;
+      if (success) {
+        setCopied(id);
+
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        timeoutRef.current = setTimeout(() => {
+          setCopied(null);
+        }, resetDelay);
       }
 
-      setCopied(id);
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        setCopied(null);
-      }, resetDelay);
-
-      return true;
+      return success;
     },
     [resetDelay]
   );
