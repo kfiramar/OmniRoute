@@ -1,4 +1,5 @@
 import { PROVIDER_ID_TO_ALIAS, PROVIDER_MODELS } from "../config/providerModels.ts";
+import { resolveWildcardAlias } from "./wildcardRouter.ts";
 
 // Derive alias→provider mapping from the single source of truth (PROVIDER_ID_TO_ALIAS)
 // This prevents the two maps from drifting out of sync
@@ -158,7 +159,7 @@ export async function getModelInfoCore(modelStr, aliasesOrGetter) {
   // Get aliases (from object or function)
   const aliases = typeof aliasesOrGetter === "function" ? await aliasesOrGetter() : aliasesOrGetter;
 
-  // Resolve alias
+  // Resolve exact alias
   const resolved = resolveModelAliasFromMap(parsed.model, aliases);
   if (resolved) {
     const canonicalModel = resolveProviderModelAlias(resolved.provider, resolved.model);
@@ -167,6 +168,28 @@ export async function getModelInfoCore(modelStr, aliasesOrGetter) {
       model: canonicalModel,
       extendedContext,
     };
+  }
+
+  // T13: Try wildcard alias (glob patterns like "claude-sonnet-*" → "anthropic/claude-sonnet-4-...")
+  if (aliases && typeof aliases === "object") {
+    const aliasEntries = Object.entries(aliases).map(([pattern, target]) => ({ pattern, target }));
+    const wildcardMatch = resolveWildcardAlias(parsed.model, aliasEntries);
+    if (wildcardMatch) {
+      const target = wildcardMatch.target as string;
+      if (target.includes("/")) {
+        const firstSlash = target.indexOf("/");
+        const providerOrAlias = target.slice(0, firstSlash);
+        const targetModel = target.slice(firstSlash + 1);
+        const provider = resolveProviderAlias(providerOrAlias);
+        const canonicalModel = resolveProviderModelAlias(provider, targetModel);
+        return {
+          provider,
+          model: canonicalModel,
+          extendedContext,
+          wildcardPattern: wildcardMatch.pattern,
+        };
+      }
+    }
   }
 
   const modelId = parsed.model;
