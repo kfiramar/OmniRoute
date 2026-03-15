@@ -104,8 +104,8 @@ export async function startMitm(apiKey, sudoPassword) {
 
   // 4. Start MITM server
   console.log("Starting MITM server...");
-  const serverPath = path.join(process.cwd(), "src/mitm/server.js");
-  serverProcess = spawn("node", [serverPath], {
+  const serverPath = path.join(process.cwd(), "src", "mitm", "server.ts");
+  serverProcess = spawn(process.execPath, ["--import", "tsx/esm", serverPath], {
     env: {
       ...process.env,
       ROUTER_API_KEY: apiKey,
